@@ -1,0 +1,59 @@
+---
+title: "league tables"
+output: html_notebook
+---
+
+## packages
+
+```{r}
+library(tidyverse)
+library(rvest)
+library(RSelenium)
+```
+
+## what if I bind_rows two data frames with different columns?
+
+```{r}
+a=tribble(
+  ~x, ~y, ~z,
+  1, 2, "a",
+  3, 4, "b"
+)
+b=tribble(
+  ~x, ~u,
+  7, "g",
+  8, "h"
+)
+```
+
+```{r}
+a
+```
+
+```{r}
+b
+```
+
+```{r}
+bind_rows(a,b)
+```
+
+missings (as you would expect)
+
+## getting link to leagues in livescore.com
+
+```{r}
+url="www.livescore.com"
+p=html_session(url)
+```
+
+```{r}
+sel="body > div.wrapper > div.left-bar > ul:nth-child(9) > li:nth-child(12) > a"
+p %>% follow_link(css=sel) %>% 
+  html_nodes("a") %>% 
+  html_attr("href") -> links
+url=str_c("http://www.livescore.com")
+read_html(url) %>% 
+  html_attr("class")  
+```
+

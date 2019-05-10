@@ -1,0 +1,123 @@
+---
+title: "livescore story"
+output: html_notebook
+---
+
+## packages
+
+```{r}
+library(tidyverse)
+library(rvest)
+display_old=0
+```
+
+```{bash}
+#rm d.rds
+```
+
+
+## get rid of old d.rds
+ *then* run story.R in background
+
+## countries down left
+
+```{r}
+my_url="http://www.livescores.com"
+html=read_html(my_url)
+(html %>% html_nodes("a.cat") %>% html_text() %>% enframe(name="id", value="country") -> left_side_countries)
+```
+
+The data frame has id (a number) and country (the country name)
+
+## get display
+
+function
+
+```{r}
+get_display=function(left_side_countries) {
+d = readRDS("d.rds")
+d2 = d %>% 
+  mutate(country=str_trim(country)) %>% 
+  left_join(left_side_countries) %>%
+  arrange(id,league,key,timestamp) %>%
+  mutate(next_score=lead(score),prev_score=lag(score)) %>%
+  mutate(next_key=lead(key),prev_key=lag(key)) %>%
+  mutate(prev_mins=lag(mins)) %>%
+  mutate(next_score_different=(next_score!=score) & (next_key==key)) %>%
+  mutate(prev_score_different=(prev_score!=score) & (prev_key==key)) %>%
+  mutate(newly_done=(mins=="FT") & (prev_mins!="FT") & (prev_key==key)) %>%
+  filter(prev_score_different | newly_done) %>%  # do I need next_score_different here? Why/why not?
+  select(id,country,league,key,mins,score,timestamp)
+d3 = d2 %>% group_by(key) %>% summarize(latest=max(timestamp)) %>% filter(latest>=display_old)
+d3 %>% left_join(d2) %>%
+  mutate(last=case_when(
+    latest==timestamp & mins=="FT" ~ "done",
+    latest==timestamp              ~ "last",
+    TRUE                           ~ "")) %>%
+  select(id,country,league,key,mins,score,last) %>% arrange(id,league,key)
+}
+```
+
+
+
+
+first time
+
+```{r}
+display_new=Sys.time()
+```
+
+
+get display
+)
+
+```{r}  
+display_old=display_new
+display_new=Sys.time()
+get_display(left_side_countries) %>% View() # I like the View a lot better
+```
+
+look at `d`:
+
+```{r}
+readRDS("d.rds") %>% group_by(key) %>% 
+  summarize(sc=last(score,order_by = timestamp), 
+               ts=last(timestamp),
+               country=last(country),
+               ko=last(mins))
+```
+
+
+
+get games that are currently going (if there are no games that have finished yet, this will give an error)
+
+```{r}
+readRDS("d.rds") %>% 
+  mutate(key2=str_c(country," - ",league,": ",key)) %>% 
+  mutate(status=case_when(mins=="FT"               ~ "finished",
+                          str_detect(mins,":")     ~ "not started",
+                          TRUE                     ~ "going")) %>% 
+  group_by(key2) %>% 
+  count(status) %>%
+  spread(status,n) %>% 
+  filter(is.na(finished)) %>% 
+  filter(!is.na(going)) %>% 
+  select(key2)
+```
+
+which ones are going on?
+
+```{r}
+readRDS("d.rds") %>% 
+  mutate(key2=str_c(country," - ",league,": ",key)) %>% 
+  mutate(status=case_when(mins=="FT"               ~ "finished",
+                          str_detect(mins,":")     ~ "not started",
+                          TRUE                     ~ "going")) %>% 
+  group_by(key2) %>% 
+  count(status) %>% 
+  spread(status,n) %>% 
+  filter(!is.na(going)) %>% 
+  select(key2)
+```
+
+this may include some that have finished

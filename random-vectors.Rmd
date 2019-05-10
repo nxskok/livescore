@@ -1,0 +1,37 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+rdf=function(i) {
+  rnorm(i)
+}
+rdf(3)
+```
+
+make df
+
+```{r}
+d=tibble(n=c(3,4,6))
+d
+```
+
+generate random normals of that length
+
+```{r}
+d %>% mutate(z=map(n,rdf))
+```
+
+see it:
+
+```{r}
+d %>% mutate(z=map(n,rdf)) %>% unnest()
+
+```
+

@@ -1,0 +1,110 @@
+---
+title: "Xscores tables"
+output: html_notebook
+---
+
+## Packages
+
+```{r}
+library(tidyverse)
+library(lubridate)
+last_seen=ifelse(exists("last_seen"),last_seen,0)
+```
+
+
+
+
+
+Arrange file names as a list of dates and times, and work out how long since. What I do later is to keep track of last observation time and keep only ones since then (or that minus something).
+
+```{r}
+tz="America/Toronto"
+list.files(pattern="2*.rds") %>% enframe(name="seq", value="file") %>% 
+  mutate(dt=ymd_hms(file, tz=tz)) %>% mutate(since=(Sys.time()-dt)/dminutes(1)) -> d
+```
+
+```{r}
+d
+```
+
+now read in the table in the file in `file` into a list-col and process
+
+```{r}
+d %>% mutate(tab=map(file,~readRDS(.))) %>% unnest(tab) %>% select(-c(seq, file, since)) %>% 
+  mutate(key=str_c(team1, team2, sep=" v ")) %>% 
+  arrange(key, dt) %>% filter(ft!="-") %>% 
+  filter(ft!="FINISHED GAMES") %>% 
+  filter(key !="Home v Away") -> d1
+```
+
+
+
+make a composite of scores. Can calculate surprise here. ft (split), pos1, pos2, half a goal for HA.
+
+```{r}
+d1 %>% mutate(all_scores=str_c(ht,ft,et,pens, sep=":")) %>% 
+  mutate(prev_score=lag(all_scores)) %>% 
+  mutate(prev_stat=lag(stat)) %>% 
+  mutate(prev_key=lag(key)) %>% 
+  mutate(row=row_number()) %>% 
+  separate(ft,into=c("s1","s2"),sep="-", remove=F, convert=T) %>% 
+  mutate(surprise=-(s1-s2-0.5)*(as.numeric(pos1)-as.numeric(pos2))) -> d2
+```
+
+display lines where score is different but game is same (this will need gradual working on)
+
+show:
+
+1 first line for a game (previous key is different)
+2 a line where the previous score is different
+3 a line where stat=Fin and the previous stat is not
+4 very first line
+
+```{r}
+d2 %>% 
+  mutate(cond1=(key != prev_key),
+         cond2=(prev_score != all_scores),
+         cond3=(stat=="Fin") & (prev_stat!="Fin"),
+         cond4=(row==1)) %>% 
+  filter(cond1 | cond2 | cond3 | cond4) -> d3
+```
+
+Is that everything? (Will investigate.)
+
+`d3` contains all the lines that are showable:
+
+```{r}
+d3
+```
+
+
+
+Find latest time for each game:
+
+```{r}
+d3 %>% group_by(key) %>% summarize(latest=max(dt), count=n()) %>% arrange(latest) -> d4
+```
+
+```{r}
+d4 %>% arrange(desc(latest))
+```
+
+
+
+look up latest times, omit ones for which count is too big
+
+```{r}
+d3 %>% left_join(d4) %>% arrange(lg, key, dt) %>% 
+  filter(count<50) %>% 
+  select(2:8, ft, surprise, all_scores, dt, latest) %>% 
+  filter(latest>last_seen) %>% 
+  View("Scores")
+```
+
+
+do this last, for next time
+
+```{r}
+(d4 %>% summarize(the_last=max(latest)) %>% pull(the_last) -> last_seen)
+```
+
