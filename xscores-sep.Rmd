@@ -97,7 +97,8 @@ look up latest times, omit ones for which count is too big
 d3 %>% left_join(d4) %>% arrange(lg, key, dt) %>% 
   filter(count<50) %>% 
   select(2:8, ft, surprise, all_scores, dt, latest) %>% 
-  filter(latest>last_seen) %>% 
+  filter(latest>last_seen) -> d5
+d5 %>% mutate_at(vars(starts_with("team")), ~tools::toTitleCase(tolower(.)))  %>% 
   View("Scores")
 ```
 
