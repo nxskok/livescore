@@ -5,6 +5,20 @@
 
 Following world soccer games, live.
 
+## Preparation
+
+  - Install Docker.
+  - In R Studio the first time, run this:
+
+<!-- end list -->
+
+``` r
+library(splashr)
+install_splash()
+```
+
+The `install_splash` only needs to be run once.
+
 ## Setup
 
 In R Studio, open 0-xscores2.R. Click on Jobs (in R Studio 1.2), and
