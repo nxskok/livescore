@@ -10,27 +10,6 @@ library(splashr)
 
 options(width=132)
 
-one_row=function(v) {
-  tibble(stat=v[2], mins=v[3], lg=v[5], team1=v[6],
-         pos1=v[7], team2=v[10], pos2=v[11], ht=v[14], 
-         ft=v[15], et=v[16], pens=v[17], scores=str_c(v[14:17], collapse=":"))
-}
-
-get_now=function(url) {
-  splash('localhost') %>% render_html(my_url,wait=3, timeout = 60) -> html
-  html %>% html_nodes("tr") -> rows
-  rows %>% html_attr("class") %>% enframe() -> classes
-  rows %>% map(~html_nodes(.,"td")) %>% map(~html_text(.)) -> table_data
-  classes %>% as_tibble() %>% 
-    separate(value, into=c("country", "id", "abb", "key", "league"), sep="#", convert=T) %>% 
-    mutate(level=id %/% 10) %>% 
-    mutate(what=str_c(country, ": ", league, " (", level, ")")) %>% 
-    select(what) -> whats
-  table_data %>% map_df(~one_row(.)) -> scores
-  scores %>% bind_cols(whats) %>% filter(!is.na(what)) %>% 
-    select(what, stat, mins, team1, pos1, team2, pos2, ft, scores)
-}
-
 get_table <- function(url) {
   splash('localhost') %>% render_html(url,wait=3, timeout = 60) -> html # this is where safely/possibly goes
   html %>% html_table(fill=T,header=T) %>% .[[5]] -> stuff
@@ -43,9 +22,8 @@ get_table <- function(url) {
 }
 
 safely_get_table=safely(get_table)
-safely_get_now=safely(get_now)
 
-my_url="http://old.xscores.com/soccer/livescores/"
+my_url="http://old.xscores.com/soccer/soccer.jsp?menu3=5"
 
 killall_splash()
 splash_svr=start_splash() # seems not to need sudo
@@ -59,7 +37,7 @@ while(1) {
   tt=Sys.time()
   print(tt)
   fname=str_c(tt,".rds")
-  stuff=safely_get_now(my_url)
+  stuff=safely_get_table(my_url)
   if (is.null(stuff$error)) {
     saveRDS(stuff$result,fname)
   } else {

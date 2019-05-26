@@ -1,0 +1,105 @@
+## packages
+
+```{r}
+library(tidyverse)
+library(rvest)
+library(curl)
+library(splashr)
+```
+
+## setup
+
+```{r}
+killall_splash()
+splash_svr=start_splash() # seems not to need sudo
+Sys.sleep(10)
+splash('localhost') %>% splash_active() # this takes a moment to get going. check it again.
+```
+
+## grab xscores
+
+```{r}
+my_url="http://old.xscores.com/soccer/soccer.jsp?menu3=5"
+splash('localhost') %>% render_html(my_url,wait=3, timeout = 60) -> html # this is where safely/possibly goes
+```
+
+## examine
+
+```{r}
+html %>% html_table(fill=T) %>% .[[5]] -> scores
+scores
+```
+
+have I lost the headings or were they never there?
+
+```{r}
+html %>% html_nodes("tr")
+```
+
+they weren't there but are hidden in class
+
+```{r}
+html %>% html_nodes("tr") %>% html_attr("class") %>% enframe() %>% separate_rows(value, sep="#") -> thing
+thing 
+```
+
+```{r}
+thing %>% count(name) %>% filter(n==5) -> full_rows
+thing %>% 
+  left_join(full_rows) %>% 
+  filter(n==5) %>% # 1850 rows, 370 matches
+  mutate(col_name=gl(5, 1, 1850, labels=c("country", "id", "abb", "key", "what"))) %>% 
+  spread(col_name, value)
+
+```
+
+can I do some nested like thing?
+
+(ref)[https://stackoverflow.com/a/39048255/4594336]
+
+
+```{r}
+html %>% html_nodes("tr") -> rows
+rows %>% html_attr("class") %>% enframe() -> classes
+rows %>% map(~html_nodes(.,"td")) %>% map(~html_text(.)) -> table_data
+nrow(classes)
+classes
+length(table_data)
+```
+
+
+```{r}
+table_data[[338]] 
+```
+
+write a function returning from this a one-row data frame of stuff I want
+
+```{r}
+table_data[[338]] %>% .[14:17] %>% str_c(collapse=":")
+one_row=function(v) {
+  tibble(stat=v[2], mins=v[3], lg=v[5], team1=v[6],
+         pos1=v[7], team2=v[10], pos2=v[11], ht=v[14], 
+         ft=v[15], et=v[16], pens=v[17], scores=str_c(v[14:17], collapse=":"))
+}
+
+```
+
+grab stuff from classes that I want too and bind cols
+
+```{r}
+classes %>% as_tibble() %>% 
+  separate(value, into=c("country", "id", "abb", "key", "league"), sep="#", convert=T) %>% 
+  mutate(level=id %/% 10) %>% 
+  mutate(what=str_c(country, ": ", league, " (", level, ")")) %>% 
+  select(what) -> whats
+table_data %>% map_df(~one_row(.)) -> scores
+scores %>% bind_cols(whats) %>% filter(!is.na(what)) %>% 
+  select(what, stat, mins, team1, pos1, team2, pos2, ft, scores)
+```
+
+that looks good. 
+
+now, write a function that makes all that happen from html. Or, better, a string of small functions.
+
+
+

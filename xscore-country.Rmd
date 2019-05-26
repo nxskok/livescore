@@ -1,0 +1,66 @@
+---
+title: "old xscores with countries"
+output: html_notebook
+---
+
+## packages
+
+```{r}
+library(tidyverse)
+library(rvest)
+library(curl)
+
+library(splashr)
+```
+
+## get splash running
+
+```{r}
+killall_splash()
+splash_svr=start_splash() # seems not to need sudo
+Sys.sleep(10)
+splash('localhost') %>% splash_active() # this takes a moment to get going. check it again.
+```
+
+## function, borrow from
+
+```{r}
+options(width=132)
+
+get_table <- function(url) {
+  splash('localhost') %>% render_html(url,wait=3, timeout = 60) -> html # this is where safely/possibly goes
+  html %>% html_table(fill=T,header=T) %>% .[[5]] -> stuff
+  n=ncol(stuff)
+  names(stuff)=1:n
+  stuff %>% as.tibble() %>% 
+    select(2,3,5,6,7,10,11,14:17) -> stuff2
+  names(stuff2)=c("stat","mins","lg","team1","pos1","team2","pos2","ht","ft","et","pens")
+  stuff2
+}
+
+```
+
+
+## get recent one
+
+```{r}
+my_url="http://old.xscores.com/soccer/soccer.jsp?menu3=5"
+splash('localhost') %>% render_html(my_url,wait=3, timeout = 60) -> html # this is where safely/possibly goes
+```
+
+## examine
+
+```{r}
+html %>% html_table(fill=T, header=F) %>% .[[5]] -> scores
+```
+
+```{r}
+scores
+```
+
+where did the country names go?
+
+```{r}
+html %>% html_nodes("td") %>% html_text()
+```
+

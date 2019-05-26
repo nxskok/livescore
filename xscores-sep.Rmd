@@ -11,7 +11,9 @@ library(lubridate)
 last_seen=ifelse(exists("last_seen"),last_seen,0)
 ```
 
+** can I get countries? **
 
+url of http://old.xscores.com/soccer/soccer.jsp?menu3=5 seems to do it
 
 
 
@@ -89,6 +91,31 @@ d3 %>% group_by(key) %>% summarize(latest=max(dt), count=n()) %>% arrange(latest
 d4 %>% arrange(desc(latest))
 ```
 
+casification
+
+```{r}
+not_words=c(
+  "Fc", "Fk", "Ff", "Spal", "If", "Fsv", "Lask", "Gd", "Bk", "Sc", "Us", "As", "Hb", "b", "Ii", "Uil",
+  "Cd", "Ud", "Ue", "Ucam", "Bb", "Hifk", "Ifk", "Kups", "Rops", "Fs", "Tp", "Mfm", "Cska", "Cf", "Up", "Scd",
+  "Sd", "Ik", "if", "Aif", "Ec", "Mte", "Vse", "Lu", "Bsk", "Vps", "Eto", "Bate", "Nsi", "Ab", "Cfr", "Cs", 
+"Ldu", "Rs", "Kr", "Fbc", "Dc", "Csd", "Ktp", "Eif", "Pec", "Psv", "Vvv", "Afc", "Ca", "Acs", "Uta", "Hjk", "Kvc",
+"Nk", "Hnk", "Ado", "Nac", "Ia", "Fh", "Ka", "Ofk", "Kpv", "Tpv", "Ac", "Gks", "Bw", "Sv", "Csm", "Fcsb", "Estac",
+"Fci", "Bfc", "Ucd", "Ukm", "Svg", "Sv", "Vfb", "Vfl", "Tsv", "Ssv", "Fv", "Ak", "Tsg", "Kcb", "Kfc", "Sjk", "Sg", "Csms", "Js",
+"Uitm", "Lks", "Ns", "Nd", "Kf", "Mtk", "Tc", "Tb", "Ki", "Ibv", "Psm", "Osk", "Hk", "Aik", "Gif", "Msk", "Mfk", "Skf", "Zp",
+"Crb", "Bsu", "Jk", "Pfc", "Shb", "Scr", "Pss", "Pkns", "Ptt", "Cp", "Rb", "Bsc"
+)
+upify=tibble(from=str_c("\\b", not_words, "\\b"),
+             to=toupper(not_words)
+)
+changes=upify$to
+names(changes)=upify$from
+casify=function(x, changes) {
+  y=tools::toTitleCase(tolower(x))
+  str_replace_all(y, changes)
+}
+```
+
+
 
 
 look up latest times, omit ones for which count is too big
@@ -98,7 +125,7 @@ d3 %>% left_join(d4) %>% arrange(lg, key, dt) %>%
   filter(count<50) %>% 
   select(2:8, ft, surprise, all_scores, dt, latest) %>% 
   filter(latest>last_seen) -> d5
-d5 %>% mutate_at(vars(starts_with("team")), ~tools::toTitleCase(tolower(.)))  %>% 
+d5 %>% mutate_at(vars(starts_with("team")), ~casify(.,changes))  %>% 
   View("Scores")
 ```
 
