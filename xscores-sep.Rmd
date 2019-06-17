@@ -11,10 +11,6 @@ library(lubridate)
 last_seen=ifelse(exists("last_seen"),last_seen,0)
 ```
 
-** can I get countries? **
-
-url of http://old.xscores.com/soccer/soccer.jsp?menu3=5 seems to do it
-
 
 
 Arrange file names as a list of dates and times, and work out how long since. What I do later is to keep track of last observation time and keep only ones since then (or that minus something).
@@ -41,17 +37,21 @@ d %>% mutate(tab=map(file,~readRDS(.))) %>% unnest(tab) %>% select(-c(seq, file,
 
 
 
+
 make a composite of scores. Can calculate surprise here. ft (split), pos1, pos2, half a goal for HA.
 
 ```{r}
-d1 %>% mutate(all_scores=str_c(ht,ft,et,pens, sep=":")) %>% 
-  mutate(prev_score=lag(all_scores)) %>% 
+d1 %>%  
+  mutate(prev_score=lag(scores)) %>% 
   mutate(prev_stat=lag(stat)) %>% 
   mutate(prev_key=lag(key)) %>% 
   mutate(row=row_number()) %>% 
   separate(ft,into=c("s1","s2"),sep="-", remove=F, convert=T) %>% 
   mutate(surprise=-(s1-s2-0.5)*(as.numeric(pos1)-as.numeric(pos2))) -> d2
 ```
+
+
+
 
 display lines where score is different but game is same (this will need gradual working on)
 
@@ -65,7 +65,7 @@ show:
 ```{r}
 d2 %>% 
   mutate(cond1=(key != prev_key),
-         cond2=(prev_score != all_scores),
+         cond2=(prev_score != scores),
          cond3=(stat=="Fin") & (prev_stat!="Fin"),
          cond4=(row==1)) %>% 
   filter(cond1 | cond2 | cond3 | cond4) -> d3
@@ -102,8 +102,10 @@ not_words=c(
 "Nk", "Hnk", "Ado", "Nac", "Ia", "Fh", "Ka", "Ofk", "Kpv", "Tpv", "Ac", "Gks", "Bw", "Sv", "Csm", "Fcsb", "Estac",
 "Fci", "Bfc", "Ucd", "Ukm", "Svg", "Sv", "Vfb", "Vfl", "Tsv", "Ssv", "Fv", "Ak", "Tsg", "Kcb", "Kfc", "Sjk", "Sg", "Csms", "Js",
 "Uitm", "Lks", "Ns", "Nd", "Kf", "Mtk", "Tc", "Tb", "Ki", "Ibv", "Psm", "Osk", "Hk", "Aik", "Gif", "Msk", "Mfk", "Skf", "Zp",
-"Crb", "Bsu", "Jk", "Pfc", "Shb", "Scr", "Pss", "Pkns", "Ptt", "Cp", "Rb", "Bsc"
+"Crb", "Bsu", "Jk", "Pfc", "Shb", "Scr", "Pss", "Pkns", "Ptt", "Cp", "Rb", "Bsc", "Abc", "Okc", "Rgv", "Sipg", "R&f", "Agmk", "Eb",
+"Skn", "Csa", "Sk", "Wsg", "Ksv", "Gais", "Tps", "Mypa", "Ons", "Djk"
 )
+sort(not_words)
 upify=tibble(from=str_c("\\b", not_words, "\\b"),
              to=toupper(not_words)
 )
@@ -121,12 +123,12 @@ casify=function(x, changes) {
 look up latest times, omit ones for which count is too big
 
 ```{r}
-d3 %>% left_join(d4) %>% arrange(lg, key, dt) %>% 
+d3 %>% left_join(d4) %>% arrange(what, key, dt) %>% 
   filter(count<50) %>% 
-  select(2:8, ft, surprise, all_scores, dt, latest) %>% 
+  select(2:8, ft, surprise, scores, dt, latest) %>% 
   filter(latest>last_seen) -> d5
-d5 %>% mutate_at(vars(starts_with("team")), ~casify(.,changes))  %>% 
-  View("Scores")
+d5 %>% mutate_at(vars(starts_with("team")), ~casify(.,changes))  -> d6
+d6 %>% View("Scores")
 ```
 
 

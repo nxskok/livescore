@@ -23,7 +23,7 @@ get_now=function(url) {
   rows %>% map(~html_nodes(.,"td")) %>% map(~html_text(.)) -> table_data
   classes %>% as_tibble() %>% 
     separate(value, into=c("country", "id", "abb", "key", "league"), sep="#", convert=T) %>% 
-    mutate(level=id %/% 10) %>% 
+    mutate(level=id) %>% 
     mutate(what=str_c(country, ": ", league, " (", level, ")")) %>% 
     select(what) -> whats
   table_data %>% map_df(~one_row(.)) -> scores
@@ -53,19 +53,22 @@ Sys.sleep(10)
 splash('localhost') %>% splash_active() # this takes a moment to get going. check it again.
 
 
-interval=2 # minutes
+interval=3 # minutes to wait after getting results
+interval_error=0.5 # minutes to wait after getting error
 
 while(1) {
   tt=Sys.time()
-  print(tt)
+  tt2=as.character(tt)
   fname=str_c(tt,".rds")
   stuff=safely_get_now(my_url)
   if (is.null(stuff$error)) {
+    print(c("OK", tt2))
     saveRDS(stuff$result,fname)
+    Sys.sleep(interval*60)
   } else {
-    print(stuff$error)
+    print(c(stuff$error), tt2)
+    Sys.sleep(interval_error*60)
   }
-  Sys.sleep(interval*60)
 }
 
 

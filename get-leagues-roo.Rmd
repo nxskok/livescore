@@ -101,5 +101,35 @@ that looks good.
 
 now, write a function that makes all that happen from html. Or, better, a string of small functions.
 
+```{r}
+one_row=function(v) {
+  tibble(stat=v[2], mins=v[3], lg=v[5], team1=v[6],
+         pos1=v[7], team2=v[10], pos2=v[11], ht=v[14], 
+         ft=v[15], et=v[16], pens=v[17], scores=str_c(v[14:17], collapse=":"))
+}
 
+get_now=function(url) {
+  splash('localhost') %>% render_html(my_url,wait=3, timeout = 60) -> html
+  html %>% html_nodes("tr") -> rows
+  rows %>% html_attr("class") %>% enframe() -> classes
+  rows %>% map(~html_nodes(.,"td")) %>% map(~html_text(.)) -> table_data
+  classes %>% as_tibble() %>% 
+    separate(value, into=c("country", "id", "abb", "key", "league"), sep="#", convert=T) %>% 
+    mutate(level=id %/% 10) %>% 
+    mutate(what=str_c(country, ": ", league, " (", level, ")")) %>% 
+    select(what) -> whats
+  table_data %>% map_df(~one_row(.)) -> scores
+  scores %>% bind_cols(whats) %>% filter(!is.na(what)) %>% 
+    select(what, stat, mins, team1, pos1, team2, pos2, ft, scores)
+}
+```
+
+it seems not to be too big. But does it work?
+
+```{r}
+my_url="http://old.xscores.com/soccer/livescores/"
+
+my_url
+(noww=get_now(my_url))
+```
 
