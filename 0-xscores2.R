@@ -66,7 +66,7 @@ while(1) {
     saveRDS(stuff$result,fname)
     Sys.sleep(interval*60)
   } else {
-    print(c(stuff$error), tt2)
+    print(c(as.character(stuff$error), tt2))
     Sys.sleep(interval_error*60)
   }
 }
