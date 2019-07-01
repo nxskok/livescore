@@ -62,11 +62,11 @@ while(1) {
   fname=str_c(tt,".rds")
   stuff=safely_get_now(my_url)
   if (is.null(stuff$error)) {
-    print(c("OK", tt2))
+    print(c(tt2, "OK"))
     saveRDS(stuff$result,fname)
     Sys.sleep(interval*60)
   } else {
-    print(c(as.character(stuff$error), tt2))
+    print(c(tt2, as.character(stuff$error)))
     Sys.sleep(interval_error*60)
   }
 }
