@@ -1,0 +1,88 @@
+---
+title: "live scores from soccerway"
+output: html_notebook
+---
+
+## packages
+
+```{r}
+library(tidyverse)
+library(rvest)
+library(lubridate)
+source("scoresway-live-functions.R")
+goback=0
+```
+
+## get games from scoresway
+
+```{r}
+base="https://www.soccerway.com"
+games <- readRDS("~/teaching/scoresway/rds/games.rds")
+now <- Sys.time()
+games %>% 
+  select(match, comp, time_stamp) %>% 
+  mutate(hours_ago=(now-time_stamp)/dhours(1)) %>% 
+  filter(between(hours_ago, -goback, 3 )) %>% 
+  select(match, comp) -> matches
+matches
+```
+
+These are the games happening now (or recently finished). Idea: modify the 0 or 3 to be hours since last look, to include games that might have changed since last look.
+
+## pulling game and extracting info
+
+
+
+start from "today" page: ends with r, 5 digits and a slash
+
+```{r}
+comp_urls=get_today()
+```
+
+so, which competition URLs do I want?
+
+```{r}
+comps_now <- get_comps_now(matches, comp_urls)
+comps_now
+```
+
+get the games from a competition that are on the original match list and info for them
+
+```{r}
+```
+
+and now do this for all the leagues on my list (this looks shaky)
+
+```{r}
+d_old=d
+d_old_time=d_time
+d_time=Sys.time()
+nrow(comps_now)
+comps_now %>% mutate(today_games=map(comp, ~get_all_comp_games(matches, comps_now, .))) %>%
+  unnest(cols = c(today_games), names_repair="unique") %>% 
+  select(value, match, t1, t2, score, mins) -> d
+print("Done.")
+View(d)
+View(d_old)
+
+```
+
+compare d_old and d
+maybe write function to take snapshot (though run all does it for now)
+
+
+```{r}
+d_old %>% full_join(d, by="match") %>% 
+  select(value=value.x, t1=t1.x, t2=t2.x, score1=score.x, score2=score.y, mins1=mins.x, mins2=mins.y) %>% 
+  mutate(event=case_when(
+    mins1!="XX" & mins2=="XX" ~ "finished",
+    mins1=="XX" & mins2!="XX" ~ "started",
+    score1 != score2 ~ "goal",
+    TRUE ~ "none"
+  )) %>% 
+  filter(event != "none") %>% 
+  arrange(value) %>% 
+  separate(value, into=c("blank", "type", "country", "league"), sep="/") %>% 
+  View("Changes")
+```
+

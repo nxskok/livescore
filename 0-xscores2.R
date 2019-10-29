@@ -47,13 +47,13 @@ safely_get_now=safely(get_now)
 
 my_url="http://old.xscores.com/soccer/livescores/"
 
-killall_splash()
-splash_svr=start_splash() # seems not to need sudo
-Sys.sleep(10)
+# killall_splash()
+# splash_svr=start_splash() # seems not to need sudo
+# Sys.sleep(10)
+# run splash in docker container with sudo docker run -it -p 8050:8050 --rm scrapinghub/splash
 splash('localhost') %>% splash_active() # this takes a moment to get going. check it again.
 
-
-interval=3 # minutes to wait after getting results
+# interval in opts is minutes to wait after successful try
 interval_error=0.5 # minutes to wait after getting error
 
 while(1) {
@@ -61,6 +61,8 @@ while(1) {
   tt2=as.character(tt)
   fname=str_c(tt,".rds")
   stuff=safely_get_now(my_url)
+  opts=readRDS("opts.rds")
+  interval=opts$interval
   if (is.null(stuff$error)) {
     print(c(tt2, "OK"))
     saveRDS(stuff$result,fname)

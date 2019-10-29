@@ -14,7 +14,7 @@ last_seen=ifelse(exists("last_seen"),last_seen,0)
 set up interval between gets
 
 ```{r}
-interval=2
+interval=10
 saveRDS(list(interval=interval), "opts.rds")
 readRDS("opts.rds")
 ```
@@ -115,7 +115,7 @@ not_words=c(
 "Crb", "Bsu", "Jk", "Pfc", "Shb", "Scr", "Pss", "Pkns", "Ptt", "Cp", "Rb", "Bsc", "Abc", "Okc", "Rgv", "Sipg", "R&f", "Agmk", "Eb",
 "Skn", "Csa", "Sk", "Wsg", "Ksv", "Gais", "Tps", "Mypa", "Ons", "Djk", "Pknp", "Qpr", "Nec", "Slc", "Pdrm", "Tsc", "Msv", "Zfc",
 "Az", "Aek", "Paok", "Kcca", "Kmc", "Ska", "Ts", "Njs", "Ae", "Mvv", "Vsg", "Psni", "Oo", "Sku", "Vfr", "Kv", "Oh", "Ps", "Dpmm", "Jdr",
-"d", "Wit", "Kfum"
+"d", "Wit", "Kfum", "Ad", "Asc", "Pae", "Rw"
 )
 sort(not_words)
 upify=tibble(from=str_c("\\b", not_words, "\\b"),
@@ -149,4 +149,3 @@ do this last, for next time
 ```{r}
 (d4 %>% summarize(the_last=max(latest)) %>% pull(the_last) -> last_seen)
 ```
-
