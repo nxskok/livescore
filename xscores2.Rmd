@@ -14,15 +14,25 @@ last_seen=ifelse(exists("last_seen"),last_seen,0)
 set up interval between gets
 
 ```{r}
-interval=10
+interval=3
 saveRDS(list(interval=interval), "opts.rds")
 readRDS("opts.rds")
 ```
 
 
+###################### instructions
+
+use splashr::killall_splash() in console to kill any previous splash containers
+use docker run in terminal to start splash process
+run 0-xscores2.R as local job
+
+
+#######################
+
+
 
 Arrange file names as a list of dates and times, and work out how long since. What I do later is to keep track of last observation time and keep only ones since then (or that minus something).
-
+  
 ```{r}
 tz="America/Toronto"
 list.files(pattern="2*.rds") %>% enframe(name="seq", value="file") %>% 
@@ -115,7 +125,8 @@ not_words=c(
 "Crb", "Bsu", "Jk", "Pfc", "Shb", "Scr", "Pss", "Pkns", "Ptt", "Cp", "Rb", "Bsc", "Abc", "Okc", "Rgv", "Sipg", "R&f", "Agmk", "Eb",
 "Skn", "Csa", "Sk", "Wsg", "Ksv", "Gais", "Tps", "Mypa", "Ons", "Djk", "Pknp", "Qpr", "Nec", "Slc", "Pdrm", "Tsc", "Msv", "Zfc",
 "Az", "Aek", "Paok", "Kcca", "Kmc", "Ska", "Ts", "Njs", "Ae", "Mvv", "Vsg", "Psni", "Oo", "Sku", "Vfr", "Kv", "Oh", "Ps", "Dpmm", "Jdr",
-"d", "Wit", "Kfum", "Ad", "Asc", "Pae", "Rw"
+"d", "Wit", "Kfum", "Ad", "Asc", "Pae", "Rw", "Ao", "Utc", "Ld", "Ums", "Ofi", "Ct", "Sad", "Bfa", "Fa", "Te",
+"Fif"
 )
 sort(not_words)
 upify=tibble(from=str_c("\\b", not_words, "\\b"),
@@ -140,7 +151,58 @@ d3 %>% left_join(d4) %>% arrange(what, key, dt) %>%
   select(2:8, ft, surprise, scores, dt, latest) %>% 
   filter(latest>last_seen) -> d5
 d5 %>% mutate_at(vars(starts_with("team")), ~casify(.,changes))  -> d6
-d6 %>% View("Scores")
+d6 %>% mutate(what_x=ifelse(row_number()>1 & what==lag(what), "", what)) %>% 
+  mutate(team1_x=ifelse(row_number()>1 & team1==lag(team1), "", team1)) %>% 
+  mutate(team2_x=ifelse(row_number()>1 & team2==lag(team2), "", team2)) -> d6 # not quite: make copies and select cols when displaying
+d6 %>% select(what=what_x, stat=stat, mins=mins,
+              team1=team1_x, pos1=pos1,
+              team2=team2_x, pos2=pos2,
+              ft:latest) %>% View("Scores")
+```
+
+leagues I care about
+
+
+```{r}
+i_care <- c("ENGLAND: CHAMPIONSHIP (21)", "ENGLAND: PREMIER LEAGUE (11)", "FRANCE: LIGUE 1 (10)", "GERMANY: BUNDESLIGA (11)", "GREECE: SUPER LEAGUE 1 (11)", 
+            "ITALY: SERIE A (11)", "SCOTLAND: SCOTTISH PREMIERSHIP (11)", "SPAIN: PRIMERA DIVISION (11)",
+            "SWEDEN: ALLSVENSKAN (11)",
+            "EUROPE (UEFA): UEFA CHAMPIONS LEAGUE (16)") # add europa league, Sweden when it starts
+d6 %>% filter(what %in% i_care) %>%
+  select(what=what_x, stat=stat, mins=mins,
+              team1=team1_x, pos1=pos1,
+              team2=team2_x, pos2=pos2,
+              ft:latest) %>%
+  View("PTF")
+```
+
+
+games with a team in the top 3
+
+```{r}
+d6 %>% filter(as.numeric(pos1)<=3 | as.numeric(pos2)<=3) %>% 
+   mutate(what_x=ifelse(row_number()>1 & what==lag(what), "", what)) %>% 
+  mutate(team1_x=ifelse(row_number()>1 & team1==lag(team1), "", team1)) %>% 
+  mutate(team2_x=ifelse(row_number()>1 & team2==lag(team2), "", team2)) %>% 
+    select(what=what_x, stat=stat, mins=mins,
+              team1=team1_x, pos1=pos1,
+              team2=team2_x, pos2=pos2,
+              ft:latest) %>%
+View("top3")
+```
+
+teams I like
+
+
+```{r}
+my_faves=c("Reading", "Torquay", "Dover", "Gillingham", "Aston Villa", "Coventry", "FC Kaiserslautern", "Montrose", "Halmstad", "Slask Wroclaw", "Blyth Spartans",
+           "Exeter", "Plymouth", "Truro", "Vancouver Whitecaps", "Toronto FC", "Deportivo La Coruna", "Real Oviedo", "Rot-Weiss Essen", "Sampdoria", "BATE Borisov")
+d6 %>% filter(team1 %in% my_faves | team2 %in% my_faves) %>% 
+    select(what=what_x, stat=stat, mins=mins,
+              team1=team1_x, pos1=pos1,
+              team2=team2_x, pos2=pos2,
+              ft:latest) %>%
+  View("faves")
 ```
 
 

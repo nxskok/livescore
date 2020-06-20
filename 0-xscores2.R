@@ -11,7 +11,7 @@ library(splashr)
 options(width=132)
 
 one_row=function(v) {
-  tibble(stat=v[2], mins=v[3], lg=v[5], team1=v[6],
+tibble(stat=v[2], mins=v[3], lg=v[5], team1=v[6],
          pos1=v[7], team2=v[10], pos2=v[11], ht=v[14], 
          ft=v[15], et=v[16], pens=v[17], scores=str_c(v[14:17], collapse=":"))
 }
