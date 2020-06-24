@@ -23,7 +23,7 @@ readRDS("opts.rds")
 ###################### instructions
 
 use splashr::killall_splash() in console to kill any previous splash containers
-use docker run in terminal to start splash process
+use docker run in terminal to start splash process: docker run -it -p 8050:8050 --rm scrapinghub/splash
 run 0-xscores2.R as local job
 
 
